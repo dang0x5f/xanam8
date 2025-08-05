@@ -2,10 +2,13 @@
 #include <unistd.h>
 #include <X11/Xlib.h>
 
-void draw_pixel(Display *d, Window w, GC gc, int x, int y, unsigned long color)
+void test01(Display *, Window , GC , uint32_t , uint32_t );
+void test02(Display *, Window , Pixmap , GC , uint32_t , uint32_t );
+
+void draw_pixel(Display *d, Pixmap p, GC gc, int x, int y, unsigned long color)
 {
     XSetForeground(d,gc,color);
-    XDrawPoint(d,w,gc,x,y);
+    XDrawPoint(d,p,gc,x,y);
 }
 
 int main(void)
@@ -35,9 +38,50 @@ int main(void)
     GC gc = XCreateGC(dpy,win,0,NULL);
     if(!gc) err(1,"effd\n");
 
+    Pixmap pm = XCreatePixmap(dpy,win,width,height,DefaultDepth(dpy,screen));
+    XImage *xi = XCreateImage(dpy,
+                              DefaultVisual(dpy,screen),
+                              DefaultDepth(dpy,screen),
+                              ZPixmap, 0,
+                              (char*)pixels,
+                              width, height
+                              32 0);
+
+
     XMapWindow(dpy,win);
     XSync(dpy,false);
 
+    
+
+    /* test02(dpy,win,pm,gc,width,height); */
+    /* test01(dpy,win,gc,width,height); */
+
+    return(0);
+}
+
+/* pixmap backbuffer */
+void test02(Display *dpy, Window win, Pixmap pm, GC gc, uint32_t width, uint32_t height)
+{
+    int xoffset = 0;
+    int yoffset = 0;
+    while(1){
+        for(int row=0; row<width; ++row){
+            for(int col=0; col<height; ++col){
+                unsigned long pixel = (uint32_t) 0  << 16 |
+                                      (uint32_t) (uint8_t)((row+yoffset)) << 8 |
+                                      (uint32_t) (uint8_t)((col+xoffset)) << 0 ;
+                XSetForeground(dpy,gc,pixel);
+                XDrawPoint(dpy,pm,gc,col,row);
+                XCopyArea(dpy,pm,win,gc,0,0,width,height,0,0);
+            }
+        }
+        xoffset+=2;
+    }
+}
+
+/* Pixel-by-pixel */
+void test01(Display *dpy, Window win, GC gc, uint32_t width, uint32_t height)
+{
     XEvent event;
     int xoffset = 0;
     int yoffset = 0;
@@ -55,6 +99,4 @@ int main(void)
         }
         xoffset+=5;
     }
-
-    return(0);
 }
