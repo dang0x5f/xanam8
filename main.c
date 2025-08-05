@@ -1,6 +1,9 @@
 #include <err.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <X11/Xlib.h>
+
+#define FPS 60
 
 void test01(Display *, Window , GC , uint32_t , uint32_t );
 void test02(Display *, Window , Pixmap , GC , uint32_t , uint32_t );
@@ -38,20 +41,39 @@ int main(void)
     GC gc = XCreateGC(dpy,win,0,NULL);
     if(!gc) err(1,"effd\n");
 
-    Pixmap pm = XCreatePixmap(dpy,win,width,height,DefaultDepth(dpy,screen));
+    uint32_t* pixels = malloc(width*height*sizeof(uint32_t));
+    /* Pixmap pm = XCreatePixmap(dpy,win,width,height,DefaultDepth(dpy,screen)); */
     XImage *xi = XCreateImage(dpy,
                               DefaultVisual(dpy,screen),
                               DefaultDepth(dpy,screen),
                               ZPixmap, 0,
                               (char*)pixels,
-                              width, height
-                              32 0);
+                              width, height,
+                              32, width*sizeof(uint32_t));
 
 
     XMapWindow(dpy,win);
     XSync(dpy,false);
 
-    
+    int xoffset = 0;
+    int yoffset = 0;
+    while(1){
+        int idx = 0;
+        for(int col=0; col<height; ++col){
+            for(int row=0; row<width; ++row){
+                pixels[col*width+row] = (uint32_t) 0 << 24 |
+                                        (uint32_t) 0 << 16 |
+                 (uint32_t) (uint8_t)((row+xoffset)) <<  8 |
+                 (uint32_t) (uint8_t)((col+yoffset)) <<  0 ;
+
+            }
+        }
+        xoffset+=1;
+        yoffset+=1;
+        XPutImage(dpy,win,gc,xi,0,0,0,0,width,height);
+        
+        usleep(1000*1000/FPS);
+    }
 
     /* test02(dpy,win,pm,gc,width,height); */
     /* test01(dpy,win,gc,width,height); */
